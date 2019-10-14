@@ -33,6 +33,8 @@ class DailyTaskList:
             exit()
         items = file_string.split(item_delimiter)
         items = [tuple(item.split(nice_delimiter)[::-1]) for item in items]
+        self.bottom = bottom
+        self.upper = upper
         self.items = items
         self.dims = dims
         self.item_coords = self._items_to_Nd_space()
@@ -41,9 +43,9 @@ class DailyTaskList:
         self._separate_into_two_arrs()
         self._make_total_arr()
         self._oscillate_selection()
+        self.dim_description = dim_description
         self.cumul = self._convert_to_cumulative()
-        self.bottom = bottom
-        self.upper = upper
+ 
     
     def __call__(self):
         print(self.items)
