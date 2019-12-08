@@ -5,6 +5,7 @@ import sys
 import time
 from matplotlib import pyplot as plt
 from typing import List
+from datetime import datetime as dt
 
 class DailyTaskList:
 
@@ -14,25 +15,47 @@ class DailyTaskList:
         [print(task) for task in self.cumul_queue]
 
     def start(self):
+        interrupt_timer = 0 
+        current_inter = None
         for minute in range(self.cumul):
-            for task in self.cumul_queue:
-                end_time = task[1]
-                if minute <= end_time:
-                    print(task[0][0]," ~ ",task[1]-minute,"minutes remaining.")
-                    break
+            for interrupt in self.item_fixed_point_interrupts:
+                intname, inttimerange = interrupt[0], interrupt[1:]
+                now = dt.now()
+                start, end = inttimerange
+                hour_i, hour_ii, min_i, min_ii = list(start)
+                ehour_i, ehour_ii, emin_i, emin_ii = list(end)
+                length = (int(ehour_i + ehour_ii) - int(hour_i + hour_ii)) * 60 + \
+                            (int(emin_i + emin_ii) - int(min_i + min_ii))
+                starth = int(hour_i + hour_ii)
+                startm = int(min_i + min_ii)
+                if now.hour == starth and now.minute == startm:
+                    print("Looks like you got something planned here! Letting you do", intname,"for",length,"minutes.")
+                    interrupt_timer = length
+                    current_inter = intname
+                
+            if interrupt_timer <= 0:
+                for task in self.cumul_queue:
+                    end_time = task[1]
+                    if minute < end_time:
+                        print(task[0][0]," ~ ",task[1]-minute,"minutes remaining.")
+                        break
+            else:
+                interrupt_timer -= 1
+                end_time += 1
+                print("!! (", intname, ") ~", interrupt_timer, "minutes remaining.")
             time.sleep(60)
 
     def print_dimensions(self):
         print(self.dim_description)
 
-    def __init__(self, file_string: str, dims: int, dim_description: str = "(PRIO, REWARD, COMPOUND)", bottom=30, upper=60):
+    def __init__(self, file_string: str, dims: int, dim_description: str = "(PRIO, REWARD, COMPOUND)", bottom=30, upper=45):
         item_delimiter = "\n"
-        nice_delimiter = ":"
+        self.nice_delimiter = ":"
         if len(file_string) > 32_767:
             print("This list is too long for my preference. To fix, have a less ambitious to-do list, you dunce.")
             exit()
         items = file_string.split(item_delimiter)
-        items = [tuple(item.split(nice_delimiter)[::-1]) for item in items]
+        items = [tuple(item.split(self.nice_delimiter)[::-1]) for item in items]
         self.bottom = bottom
         self.upper = upper
         self.items = items
@@ -60,7 +83,8 @@ class DailyTaskList:
         for item in self.item_coords:
             item_name, coords = item[0], item[1:]
             if item_name[0] == '*':
-                self.item_fixed_point_interrupts.append()
+                self.item_fixed_point_interrupts.append(item)
+                continue 
             if item_name[0] == '#':
                 continue
             coords = [int(coord) for coord in coords]
@@ -102,7 +126,7 @@ class DailyTaskList:
             self.tot_time += minutes
             self.osc.append((to_append, minutes))
             j-=1
-        print(len(self.osc))
+        # print(len(self.osc))
 
     def _convert_to_cumulative(self):
         print(self.tot_time)
